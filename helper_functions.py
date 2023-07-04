@@ -7,8 +7,11 @@ import pingouin as pg
 from sklearn.model_selection import RepeatedKFold, cross_validate
 from sklearn.linear_model import LinearRegression
 
-#*** These analyses are based on the code provided by Cooper and Ritchey (2022), which can be found here: https://github.com/memobc/paper-vividness-features
-#*** They have been extended to allow for an additional manipulation of an age group (both young and older adults have been tested) and an additional dependent variable - a confidence rating¶
+"""******************************
+These analyses are based on the code provided by Cooper and Ritchey (2022), which can be found here: https://github.com/memobc paper-vividness-features.
+ They have been extended to allow for an additional manipulation of an age group (both young and older adults have been tested) and an additional dependent variable - a confidence rating¶
+ 
+ ******************************"""
 
 def quality_check(my_data):
     # uses RTs and performance to check quality of data and
