@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r, echo=TRUE}
+```{r, echo=FALSE}
 library(tidyverse)
 library(ggpubr)
 library(rstatix)
@@ -17,7 +17,7 @@ library (lmerTest)
 library(kableExtra)
 ```
 
-```{r, echo=TRUE}
+```{r, echo=FALSE}
 # Read in correlation data prepared in Python
 cor_data <- read_csv('.\\data\\correlation_coefficients_r.csv')
 ```
@@ -38,6 +38,8 @@ cor_data <- cor_data |>
   )
 ```
 
+
+
 ```{r}
 # checking mean Fisher transformed correlation coefficients
 mean_table <- cor_data %>% group_by(participant, age) %>% 
@@ -49,6 +51,8 @@ mean_table   %>%
   select(mean_vividness, mean_confidence) %>%
   get_summary_stats(type = "mean_sd")
 ```
+
+
 
 ```{r}
 bxp_vividness <- ggboxplot(
@@ -72,20 +76,17 @@ cor_data <- cor_data %>% filter(!participant %in% poor_detail_performance_exclus
 
 ```{r}
 three_way_vividness <- afex::aov_4(z_vividness ~ age*content*specificity + (content*specificity|participant), data = cor_data)
-three_way_vividness
 knitr::kable(afex::nice(three_way_vividness)) 
 ```
 
 ```{r}
 three_way_confidence <- afex::aov_4(z_confidence ~ age_word*content*specificity + (content*specificity|participant), data = cor_data)
-three_way_confidence
 knitr::kable(afex::nice(three_way_confidence)) 
 ```
 
 ```{r}
 # given that there was no main effect of content, rerunning ANOVA as 2x2
 two_way_confidence <- afex::aov_4(z_confidence ~ age_word*specificity + (specificity|participant), data = cor_data)
-two_way_confidence
 knitr::kable(afex::nice(two_way_confidence)) 
 ```
 
@@ -123,7 +124,7 @@ pwc <- cor_data |>
   pairwise_t_test(
     z_confidence ~ content, paired = TRUE, 
     p.adjust.method = "bonferroni"
-    ) %>%
+    )
 pwc
 ```
 
