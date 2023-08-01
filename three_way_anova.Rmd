@@ -1,0 +1,262 @@
+---
+title: "three_way_anova_age_vivid_conf"
+author: "Kasia Mojescik"
+date: "18/02/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=TRUE}
+library(tidyverse)
+library(ggpubr)
+library(rstatix)
+library (lmerTest) 
+library(kableExtra)
+```
+
+```{r, echo=TRUE}
+# Read in correlation data prepared in Python
+cor_data <- read_csv('.\\data\\correlation_coefficients_r.csv')
+```
+
+```{r}
+# specify age to be an independent variable and check the conditions: 0 = young adults, 1 = older adults
+cor_data$age <- as.factor(cor_data$age)
+levels(cor_data$age)
+```
+
+```{r}
+cor_data <- cor_data |> 
+  dplyr::mutate(
+    age_word = dplyr::case_when(
+      age == 0 ~ "Young adults",
+      TRUE ~ "Older adults"
+    )
+  )
+```
+
+```{r}
+# checking mean Fisher transformed correlation coefficients
+mean_table <- cor_data %>% group_by(participant, age) %>% 
+  summarise(mean_vividness=mean(z_vividness), mean_confidence=mean(z_confidence),
+            .groups = 'drop')
+
+mean_table   %>%
+  group_by(age) %>%
+  select(mean_vividness, mean_confidence) %>%
+  get_summary_stats(type = "mean_sd")
+```
+
+```{r}
+bxp_vividness <- ggboxplot(
+  cor_data, x = "age", y = "z_vividness",
+  color = "content", palette = "jco", facet.by = "specificity", short.panel.labs = FALSE
+  )
+bxp_vividness
+```
+
+```{r}
+bxp_confidence <- ggboxplot(cor_data, x="age", y="z_confidence", color = "content", palette = "jco", facet.by = "specificity", short.panel.labs = FALSE)
+
+bxp_confidence
+```
+
+```{r}
+# people whose performance on memory detail was below 55% (found in Python, individual differences analyses)
+poor_detail_performance_exclusion <- c('10','14','15','18','24','25','32','35','41','43','82','84','89','101','113','130','148','154','166','175','193')
+cor_data <- cor_data %>% filter(!participant %in% poor_detail_performance_exclusion)
+```
+
+
+
+
+
+```{r}
+three_way_vividness <- afex::aov_4(z_vividness ~ age*content*specificity + (content*specificity|participant), data = cor_data)
+three_way_vividness
+knitr::kable(afex::nice(three_way_vividness)) 
+```
+
+```{r}
+three_way_confidence <- afex::aov_4(z_confidence ~ age_word*content*specificity + (content*specificity|participant), data = cor_data)
+three_way_confidence
+knitr::kable(afex::nice(three_way_confidence)) 
+```
+
+```{r}
+two_way_confidence <- afex::aov_4(z_confidence ~ age_word*specificity + (specificity|participant), data = cor_data)
+two_way_confidence
+knitr::kable(afex::nice(two_way_confidence)) 
+```
+
+
+```{r}
+three_way_emm <- emmeans::emmeans(three_way_confidence1, c("age", "content", "specificity"), model = "multivariate")
+three_way_emm # shows us the means
+```
+
+```{r}
+afex::afex_plot(three_way_confidence,
+                x = "content",
+                trace = "specificity",
+                panel = "age_word",
+                mapping = "colour",
+                error='within'
+                
+                ) +
+  #title="Relationship between confidence and memory attributes" #+
+  jtools::theme_apa() + 
+  labs(y = "Z score confidence-mem corr")
+```
+
+
+
+
+
+```{r}
+three_way_confidence <- aov(z_confidence ~ age*content*specificity, data = cor_data)
+tukey<-TukeyHSD(three_way_confidence); tukey
+```
+
+```{r}
+two.way <- cor_data %>%
+  group_by(age) %>%
+  anova_test(dv = z_confidence, wid = participant, within = c(content, specificity))
+two.way
+
+
+# Extract anova table
+get_anova_table(two.way)
+```
+
+```{r}
+
+cor_data_young <- filter(cor_data, age == 0)
+
+bxp_confidence <- ggboxplot(cor_data_young, x="content", y="z_confidence", palette = "jco", facet.by = "specificity", short.panel.labs = FALSE)
+
+bxp_confidence
+```
+
+```{r}
+two.way <- cor_data_young %>%
+  anova_test(dv = z_confidence, wid = participant, within = c(content, specificity))
+two.way
+
+
+# Extract anova table
+get_anova_table(two.way)
+```
+
+```{r}
+specificity.effect <- cor_data %>%
+  group_by(age) %>%
+  anova_test(dv = z_confidence, wid = participant, within = c(specificity,content)) %>%
+  get_anova_table()
+specificity.effect 
+```
+
+
+
+```{r}
+# compute pairwise comparisons
+pwc <- cor_data |>
+  group_by(age, specificity)|>
+  pairwise_t_test(
+    z_confidence ~ content, paired = TRUE, 
+    p.adjust.method = "bonferroni"
+    )# %>%
+#  select(-statistic, -df) # Remove details
+# Focus on the results of exercises:yes group
+#pwc %>% filter(exercises == "yes") %>%
+#  select(-p)    # Remove p column
+
+pwc
+```
+
+```{r}
+bxp_confidence <- ggboxplot(cor_data, x="content", y="z_confidence", color = "specificity", palette = "jco", facet.by = "age", short.panel.labs = FALSE)
+
+bxp_confidence
+```
+
+```{r}
+# Visualization: box plots with p-values
+pwc <- pwc %>% add_xy_position(x = "content")
+#pwc.filtered <- pwc %>% filter(age == 0)
+bxp_confidence + 
+  stat_pvalue_manual(
+  pwc, x = "content", y.position = 3,
+  position = position_dodge(0.8))
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+```
+
+```{r}
+interaction.plot(cor_data$age, cor_data$specificity, cor_data$content)
+```
+
+```{r}
+confidence_lme_null_1 =  lmer(z_confidence ~ 1 + (1 | participant), data = cor_data, REML=FALSE)
+confidence_lme_null_2 =  lmer(z_confidence ~ 1 + (1 +specificity | participant), data = cor_data, REML=FALSE)
+confidence_lme_null_3 =  lmer(z_confidence ~ 1 + (1 +content | participant), data = cor_data, REML=FALSE)
+```
+
+
+
+```{r}
+anova(confidence_lme_null_1, confidence_lme_null_2, confidence_lme_null_3)
+```
+
+```{r}
+confidence_lme_null = confidence_lme_null_2
+```
+
+```{r}
+confidence_lme =  lmer(z_confidence ~ specificity * content * age + (1 + specificity + content | participant), data = cor_data, REML=FALSE)
+```
+
+```{r}
+anova(confidence_lme, confidence_lme_null)
+```
+
+```{r}
+anova(confidence_lme)
+```
+
+
+```{r}
+summary(confidence_lme)
+```
+```{r}
+# We're doing this to determine where we should cut off the residuals as the first model had scewed residual distribution
+r = resid(confidence_lme)
+r_mu = mean(r)
+r_std = sd(r)
+r_z = (r-r_mu)/r_std
+hist(r_z)
+# design matrix is X
+X = model.matrix(confidence_lme)
+n = nrow(X) # NumberOfObservations
+q = 0.5;
+p = (1 - exp(log(q)/n)) /2;
+z = abs(qnorm(p)) # cutoff of z-scored resaids
+cor_Data_cut <- cor_data
+cor_Data_cut$cencoring = abs(r_z)<z
+cor_Data_cut<-cor_Data_cut %>% dplyr::filter(cencoring == TRUE) 
+confidence_lme_cut =  lmer(z_confidence ~ specificity * content * age + (1 + specificity + content | participant), data = cor_Data_cut, REML=FALSE)
+anova(confidence_lme_cut)
+
+
+
+
+
+
+
+```
+

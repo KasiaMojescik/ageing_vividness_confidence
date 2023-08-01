@@ -9,7 +9,7 @@ from sklearn.linear_model import LinearRegression
 
 """******************************
 These analyses are based on the code provided by Cooper and Ritchey (2022), which can be found here: https://github.com/memobc paper-vividness-features.
- They have been extended to allow for an additional manipulation of an age group (both young and older adults have been tested) and an additional dependent variable - a confidence rating¶
+ They have been extended to allow for an additional manipulation of an age group (both young and older adults have been tested) and an additional dependent variable - a confidence rating
  
  ******************************"""
 

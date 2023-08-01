@@ -51,7 +51,7 @@ def cluster_data(cor_params, isOlder, isVividness):
     plot_distance_network(cor_params, title, kmeans_labels, prop_view, myk, ran_seed=2)
 
     # save 
-    distance_plot = "plots/distances_4cluster_"+ title_group + "_" +title_dv + ".pdf"
+    distance_plot = "plots/distances_4cluster_"+ title_group + "_" +title_dv + ".png"
     plt.savefig(distance_plot, bbox_inches = 'tight')
     plt.show()
 
@@ -61,7 +61,7 @@ def cluster_data(cor_params, isOlder, isVividness):
     cluster_polar_plot(title, centroids, myk, -1.4, 1.8)
 
     # save 
-    polar_plot = "plots/polar_4cluster_" + title_group + "_" +title_dv + ".pdf"
+    polar_plot = "plots/polar_4cluster_" + title_group + "_" +title_dv + ".png"
     plt.savefig(polar_plot, bbox_inches = 'tight')
     plt.show()
 
