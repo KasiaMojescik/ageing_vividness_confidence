@@ -70,8 +70,9 @@ bxp_confidence
 
 ```{r}
 # people whose performance on memory detail was below 55% (found in Python, individual differences analyses)
-poor_detail_performance_exclusion <- c('10','14','15','18','24','25','32','35','41','43','82','84','89','101','113','130','148','154','166','175','193')
-cor_data <- cor_data %>% filter(!participant %in% poor_detail_performance_exclusion)
+# Please note: we are not interpreting the three way confidence interaction as the interaction dissapears when you exlude these participants
+#poor_detail_performance_exclusion <- c('10','14','15','18','24','25','32','35','41','43','82','84','89','101','113','130','148','154','166','175','193')
+#cor_data <- cor_data %>% filter(!participant %in% poor_detail_performance_exclusion)
 ```
 
 ```{r}
@@ -128,14 +129,3 @@ pwc <- cor_data |>
 pwc
 ```
 
-```{r}
-confidence_lme =  lmer(z_confidence ~ specificity * content * age + (1 + specificity + content | participant), data = cor_data, REML=FALSE)
-```
-
-```{r}
-anova(confidence_lme)
-```
-
-```{r}
-summary(confidence_lme)
-```
