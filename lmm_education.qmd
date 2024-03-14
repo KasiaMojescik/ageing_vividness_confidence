@@ -1,0 +1,135 @@
+---
+title: "lme_edu"
+format: html
+editor: visual
+---
+
+```{r message = FALSE}
+library(lme4)
+library(lmerTest)
+library(dplyr)
+```
+
+```{r message = FALSE}
+lmm_data <- readr::read_csv('./data/exploratory_analysis_unconditional.csv')
+```
+
+```{r message = FALSE}
+demog_data <- readr::read_csv('./data/demographic_data.csv')
+```
+
+```{r}
+lmm_data <- merge(lmm_data, demog_data, by='participant')
+```
+
+```{r}
+demog_data %>% summarise(Count = n_distinct(participant))
+lmm_data %>% summarise(Count = n_distinct(participant))
+```
+
+Generating a demographic table
+
+```{r message = FALSE}
+# Making sure that the 7 participants excluded from the analytic sample due to poor performance are not included in the analyses
+register <- lmm_data |> dplyr::filter(!participant %in% c('114','115','119','124','134','152','171'))
+
+register$Education <- factor(lmm_data$Education, levels=c('School', 'College or University', 'Postgraduate', 'Prefer not to respond'))
+
+register <- register |> distinct(participant, Education, age)
+
+register <- register |> 
+  dplyr::mutate(
+    age = dplyr::case_when(
+      age == 1 ~ "Older adult",
+      age == 0 ~ "Young adult"
+    )
+  )
+
+grouped_register_education <- register |> dplyr::group_by(Education, age) |>
+  dplyr::summarise(
+    n = dplyr::n()
+  )
+
+grouped_register_education <- grouped_register_education |> tidyr::pivot_wider(names_from = age, values_from = n) 
+
+education_table <- rempsyc::nice_table(
+  grouped_register_education,
+  title = c("Table 1", "Education Demographics for the Young and Older Adult Samples"))
+
+flextable::save_as_docx(education_table, path = "education_table_updated.docx")
+```
+
+```{r}
+education_table
+```
+
+Filter out Prefer not to respond before running the model (it only includes 1 participant)
+
+```{r}
+lmm_data <- lmm_data |> dplyr::filter(Education !="Prefer not to respond") 
+lmm_data %>% summarise(Count = n_distinct(participant))
+```
+
+Making Education an ordinal variable and z-scoring it before running the model
+
+```{r}
+demog_data_cleaned <- demog_data |> dplyr::filter(Education !="Prefer not to respond") 
+
+demog_data_cleaned <- demog_data_cleaned |> 
+  dplyr::mutate(
+    Education = dplyr::case_when(
+      Education == 'School' ~ 1,
+      Education == 'College or University' ~ 2,
+      Education == 'Postgraduate' ~ 3
+    )
+  )
+demog_data_cleaned$Education_Z <- with(demog_data_cleaned, (Education-mean(Education))/sd(Education))
+demog_data_cleaned <- demog_data_cleaned |> select(participant, Education_Z)
+```
+
+```{r}
+lmm_data <- merge(lmm_data, demog_data_cleaned, by='participant')
+lmm_data %>% summarise(Count = n_distinct(participant))
+```
+
+```{r include=FALSE}
+lmm_data$age <- as.factor(lmm_data$age)
+lmm_data$Gender <- as.factor(lmm_data$Gender)
+```
+
+```{r}
+l1 <- lmer(vividness ~ total_gist + total_detail + age + Education_Z + Gender + (1|event) + (1|participant), data=lmm_data)
+```
+
+```{r}
+summary(l1)
+```
+
+```{r}
+l2 <- lmer(confidence ~ total_gist + total_detail + age + Education_Z + Gender + (1|event) + (1|participant), data=lmm_data)
+```
+
+```{r}
+summary(l2)
+```
+
+```{r}
+
+l3 <- lmer(total ~ age + Education_Z + Gender +(1|event) + (1|participant), data=lmm_data)
+```
+
+```{r}
+summary(l3)
+```
+
+```{r}
+anova(l1, type = 3, ddf = "Satterthwaite") |> knitr::kable(digits = 3)
+```
+
+```{r}
+anova(l2, type = 3, ddf = "Satterthwaite") |> knitr::kable(digits = 3)
+```
+
+```{r}
+anova(l3, type = 3, ddf = "Satterthwaite") |> knitr::kable(digits = 3)
+```
